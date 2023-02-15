@@ -41,6 +41,16 @@ def get_dt(flux_fn):
 
     return d_t
 
+"""add"""
+def get_decomp(flux_fn):
+
+    ncfile = netcdf.Dataset(flux_fn, mode='r')
+    len_decomps = len(ncfile.dimensions['ncomponent'])
+    ncfile.close()
+
+
+    return len_decomps
+"""add finish"""
 
 def gen_fluxdata(flux_fn, no_axes):
 
@@ -69,8 +79,11 @@ def gen_fluxdata(flux_fn, no_axes):
         if no_axes:
             flux = ncfile.variables['flux'][:, ipair_1, icom]
         else:
-            flux = ncfile.variables['flux'][:, :, ipair_1, icom]
+            flux = ncfile.variables['flux'][:, :, ipair_1, :]
+        """
+        old version :  flux = ncfile.variables['flux'][:, :, ipair_1, icom]
 
+        """
         ncfile.close()
 
         t_2 = time.time()
@@ -154,8 +167,12 @@ class TCCalculator:
 
     def cal_tc(self, acf):
         """Calculate final transport  coefficient."""
-        return self.__coef * self.d_t*1000.0 * numpy.sum(acf)
-
+        return self.__coef * self.d_t*1000.0 * numpy.trapz(acf,axis=0)
+        """
+        Calculate final transport  coefficient.
+        old version in develop branch:  return self.__coef * self.d_t*1000.0 * numpy.sum(acf) 
+        old version in master branch:  return self.__coef * self.d_t*1000.0 * numpy.trapz(acf,axis=0)[0]        """
+        
     def get_times(self):
         return numpy.arange(0.0, self.nframe_acf*self.d_t, self.d_t)
 
@@ -225,6 +242,9 @@ class WriterBase:
         # create dimensions
         ncfile.createDimension('npair', None)
         ncfile.createDimension('nframe', self.__nframe)
+        """add"""
+        ncfile.createDimension('ncomponent' , self.__decomps)
+        """add finish"""
         ncfile.createDimension('nchar', 20)
 
         # create variables
@@ -239,8 +259,17 @@ class WriterBase:
         ncfile.createVariable('donors', 'c', ('npair', 'nchar'))
         ncfile.createVariable('acceptors', 'c', ('npair', 'nchar'))
 
+        """add"""
+        # add components
+        nc_com = ncfile.createVariable('components','c', ('ncomponent','nchar'))
+        """add finish"""
+        
         # trajectory
-        nc_data = ncfile.createVariable(self.name, 'f4', ('npair', 'nframe'),)
+        nc_data = ncfile.createVariable(self.name, 'f4', ('npair', 'nframe', 'ncomponent'),)
+        """
+        old version:    nc_data = ncfile.createVariable(self.name, 'f4', ('npair', 'nframe'),)
+
+        """ 
         nc_data.units = self.unit
 
         ncfile.sync()
@@ -295,9 +324,13 @@ class ACFWriter(WriterBase):
     unit = '(kcal/mol/fs)^2'
 
 
+"""
+old version:  def cal_tc(flux_fn, tc_fn="", acf_fn="", acf_fmt="netcdf", frame_range=[1, -1, 1], avg_shift=1, nsample=0, d_t=None, coef=1.0, use_debug=False, no_axes=False, **kwds):       
+
+"""
 def cal_tc(flux_fn, tc_fn="", acf_fn="", acf_fmt="netcdf",
            frame_range=[1, -1, 1], avg_shift=1, nsample=0, d_t=None,
-           coef=1.0, use_debug=False, no_axes=False, **kwds):
+           coef=1.0, use_debug=False, no_axes=False, len_decomps=None, **kwds):
 
     ti = time.time()
     par = ParallelProcessor()
@@ -310,8 +343,19 @@ def cal_tc(flux_fn, tc_fn="", acf_fn="", acf_fmt="netcdf",
     else:
         d_t = d_t * frame_range[2]    # in ps
 
+    """add"""
+    if len_decomps is None:
+        len_decomps=get_decomp(flux_fn)
+    else:
+        len_decomps=get_decomp(flux_fn)
+   """add finish"""
+  
     # prepare calculator
-    cal = TCCalculator(frame_range, avg_shift, nsample, coef, no_axes, d_t)
+    """
+    old version:  cal = TCCalculator(frame_range, avg_shift, nsample, coef, no_axes, d_t)     
+
+    """
+    cal = TCCalculator(frame_range, avg_shift, nsample, coef, no_axes, d_t, len_decomps)
     cal.print = par.write
 
     # prepare writer
@@ -321,7 +365,11 @@ def cal_tc(flux_fn, tc_fn="", acf_fn="", acf_fmt="netcdf",
     # create ACF writer if it is necessary.
     if acf_fn:
         if par.is_root():
-            acf_writer = ACFWriter(acf_fn, cal.nframe_acf, d_t)
+             """
+             old version:  acf_writer = ACFWriter(acf_fn, cal.nframe_acf, d_t)
+
+             """
+            acf_writer = ACFWriter(acf_fn, cal.nframe_acf, d_t, len_decomps)
     else:
         acf_writer = None
 
