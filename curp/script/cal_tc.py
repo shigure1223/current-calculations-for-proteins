@@ -97,8 +97,11 @@ def gen_fluxdata(flux_fn, no_axes):
 
 class TCCalculator:
     def __init__(self, frame_range, avg_shift,
-                 nsample, coef, no_axes, d_t=0.01):
+                 nsample, coef, no_axes, len_decomps, d_t=0.01):
+    """
+    old version :  def __init__(self, frame_range, avg_shift, nsample, coef, no_axes, d_t=0.01):
 
+    """
         self.__fst_lst_intvl = frame_range
         fst, lst, intvl = self.__fst_lst_intvl
         self.nframe_acf = (lst - fst)//intvl + 1
@@ -108,6 +111,9 @@ class TCCalculator:
         self.__shift = avg_shift
         self.__nsample = nsample
         self.__coef = coef
+        """add"""
+        self.__decomps= len_decomps
+        """add finish"""
         self.d_t = d_t
         self.no_axes = no_axes
 
@@ -215,13 +221,19 @@ class WriterBase:
     name = ''
     unit = ''
 
-    def __init__(self, fp, nframe, d_t, label='test', title=''):
+    def __init__(self, fp, nframe, len_decomps, d_t, label='test', title=''):
+    """
+    old version :  def __init__(self, fp, nframe, d_t, label='test', title=''):
 
+    """
         self.__fp = fp
         self.__ncfile = None
         self.__nframe = nframe
         self.__title = title
         self.__label = label
+        """add"""
+        self.__decomps= len_decomps
+        """add finish"""
         self.__d_t = d_t
 
         self.setup()
@@ -329,7 +341,7 @@ old version:  def cal_tc(flux_fn, tc_fn="", acf_fn="", acf_fmt="netcdf", frame_r
 
 """
 def cal_tc(flux_fn, tc_fn="", acf_fn="", acf_fmt="netcdf",
-           frame_range=[1, -1, 1], avg_shift=1, nsample=0, d_t=None,
+           frame_range=[1, -1, 1], avg_shift=1, nsample=0, d_t=0.001,
            coef=1.0, use_debug=False, no_axes=False, len_decomps=None, **kwds):
 
     ti = time.time()
@@ -355,7 +367,7 @@ def cal_tc(flux_fn, tc_fn="", acf_fn="", acf_fmt="netcdf",
     old version:  cal = TCCalculator(frame_range, avg_shift, nsample, coef, no_axes, d_t)     
 
     """
-    cal = TCCalculator(frame_range, avg_shift, nsample, coef, no_axes, d_t, len_decomps)
+    cal = TCCalculator(frame_range, avg_shift, nsample, coef, no_axes, len_decomps, d_t)
     cal.print = par.write
 
     # prepare writer
@@ -369,7 +381,7 @@ def cal_tc(flux_fn, tc_fn="", acf_fn="", acf_fmt="netcdf",
              old version:  acf_writer = ACFWriter(acf_fn, cal.nframe_acf, d_t)
 
              """
-            acf_writer = ACFWriter(acf_fn, cal.nframe_acf, d_t, len_decomps)
+            acf_writer = ACFWriter(acf_fn, cal.nframe_acf, len_decomps, d_t)
     else:
         acf_writer = None
 
